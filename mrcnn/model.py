@@ -2114,20 +2114,20 @@ class MaskRCNN():
         some layers from loading.
         exclude: list of layer names to exclude
         """
-    import h5py
+        import h5py
     
-    # Exclude layers if necessary
-    if exclude:
-        by_name = True
+        # Exclude layers if necessary
+        if exclude:
+            by_name = True
 
-    if h5py is None:
-        raise ImportError('`load_weights` requires h5py.')
+        if h5py is None:
+            raise ImportError('`load_weights` requires h5py.')
     
-    # Use Keras' built-in load_weights function
-    self.keras_model.load_weights(filepath, by_name=by_name)
+        # Use Keras' built-in load_weights function
+        self.keras_model.load_weights(filepath, by_name=by_name)
     
-    # Update the log directory
-    self.set_log_dir(filepath)
+        # Update the log directory
+        self.set_log_dir(filepath)
 
     def get_imagenet_weights(self):
         """Downloads ImageNet trained weights from Keras.
@@ -2360,7 +2360,7 @@ class MaskRCNN():
         # Work-around for Windows: Keras fails on Windows when using
         # multiprocessing workers. See discussion here:
         # https://github.com/matterport/Mask_RCNN/issues/13#issuecomment-353124009
-        if os.name is 'nt':
+        if os.name == 'nt':
             workers = 0
         else:
             workers = multiprocessing.cpu_count()
