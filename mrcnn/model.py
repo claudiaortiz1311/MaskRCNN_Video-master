@@ -854,7 +854,9 @@ def rpn_graph(feature_map, anchors_per_location, anchor_stride):
 
     # Reshape to [batch, anchors, 2]
     rpn_class_logits = KL.Lambda(
-        lambda t: tf.reshape(t, [tf.shape(t)[0], -1, 2]))(x)
+    lambda t: tf.reshape(t, [tf.shape(t)[0], -1, 2]),
+    output_shape=lambda s: (s[0], None, 2)
+    )(x)
 
     # Softmax on last dimension of BG/FG.
     rpn_probs = KL.Activation(
@@ -866,7 +868,11 @@ def rpn_graph(feature_map, anchors_per_location, anchor_stride):
                   activation='linear', name='rpn_bbox_pred')(shared)
 
     # Reshape to [batch, anchors, 4]
-    rpn_bbox = KL.Lambda(lambda t: tf.reshape(t, [tf.shape(t)[0], -1, 4]))(x)
+    rpn_bbox = KL.Lambda(
+    lambda t: tf.reshape(t, [tf.shape(t)[0], -1, 4]),
+    output_shape=lambda s: (s[0], None, 4)
+    )(x)
+
 
     return [rpn_class_logits, rpn_probs, rpn_bbox]
 
@@ -933,8 +939,11 @@ def fpn_classifier_graph(rois, feature_maps, image_meta,
     x = KL.TimeDistributed(BatchNorm(), name='mrcnn_class_bn2')(x, training=train_bn)
     x = KL.Activation('relu')(x)
 
-    shared = KL.Lambda(lambda x: K.squeeze(K.squeeze(x, 3), 2),
-                       name="pool_squeeze")(x)
+    shared = KL.Lambda(
+    lambda x: K.squeeze(K.squeeze(x, 3), 2),
+    output_shape=lambda s: (s[0], s[1], s[2])  # Define la nueva forma
+    )(x)
+
 
     # Classifier head
     mrcnn_class_logits = KL.TimeDistributed(KL.Dense(num_classes),
@@ -1931,7 +1940,9 @@ class MaskRCNN():
             # TODO: can this be optimized to avoid duplicating the anchors?
             anchors = np.broadcast_to(anchors, (config.BATCH_SIZE,) + anchors.shape)
             # A hack to get around Keras's bad support for constants
-            anchors = KL.Lambda(lambda x: tf.Variable(anchors), name="anchors")(input_image)
+            anchors = KL.Lambda(lambda x: tf.Variable(anchors), 
+                    output_shape=(config.BATCH_SIZE, anchors.shape[1], anchors.shape[2]), 
+                    name="anchors")(input_image)
         else:
             anchors = input_anchors
 
@@ -1976,8 +1987,8 @@ class MaskRCNN():
                 input_rois = KL.Input(shape=[config.POST_NMS_ROIS_TRAINING, 4],
                                       name="input_roi", dtype=np.int32)
                 # Normalize coordinates
-                target_rois = KL.Lambda(lambda x: norm_boxes_graph(
-                    x, K.shape(input_image)[1:3]))(input_rois)
+                target_rois = KL.Lambda(lambda x: norm_boxes_graph(x, K.shape(input_image)[1:3]),
+                        output_shape=(config.POST_NMS_ROIS_TRAINING, 4))(input_rois)
             else:
                 target_rois = rpn_rois
 
@@ -2007,16 +2018,21 @@ class MaskRCNN():
             output_rois = KL.Lambda(lambda x: x * 1, output_shape=(None, 4), name="output_rois")(rois)
 
             # Losses
-            rpn_class_loss = KL.Lambda(lambda x: rpn_class_loss_graph(*x), name="rpn_class_loss")(
-                [input_rpn_match, rpn_class_logits])
-            rpn_bbox_loss = KL.Lambda(lambda x: rpn_bbox_loss_graph(config, *x), name="rpn_bbox_loss")(
-                [input_rpn_bbox, input_rpn_match, rpn_bbox])
-            class_loss = KL.Lambda(lambda x: mrcnn_class_loss_graph(*x), name="mrcnn_class_loss")(
-                [target_class_ids, mrcnn_class_logits, active_class_ids])
-            bbox_loss = KL.Lambda(lambda x: mrcnn_bbox_loss_graph(*x), name="mrcnn_bbox_loss")(
-                [target_bbox, target_class_ids, mrcnn_bbox])
-            mask_loss = KL.Lambda(lambda x: mrcnn_mask_loss_graph(*x), name="mrcnn_mask_loss")(
-                [target_mask, target_class_ids, mrcnn_mask])
+            rpn_class_loss = KL.Lambda(lambda x: rpn_class_loss_graph(*x), 
+                           output_shape=(1,), name="rpn_class_loss")(
+             [input_rpn_match, rpn_class_logits])
+            rpn_bbox_loss = KL.Lambda(lambda x: rpn_bbox_loss_graph(config, *x), 
+                          output_shape=(1,), name="rpn_bbox_loss")(
+             [input_rpn_bbox, input_rpn_match, rpn_bbox])
+            class_loss = KL.Lambda(lambda x: mrcnn_class_loss_graph(*x), 
+                       output_shape=(1,), name="mrcnn_class_loss")(
+             [target_class_ids, mrcnn_class_logits, active_class_ids])
+            bbox_loss = KL.Lambda(lambda x: mrcnn_bbox_loss_graph(*x), 
+                      output_shape=(1,), name="mrcnn_bbox_loss")(
+             [target_bbox, target_class_ids, mrcnn_bbox])
+            mask_loss = KL.Lambda(lambda x: mrcnn_mask_loss_graph(*x), 
+                      output_shape=(1,), name="mrcnn_mask_loss")(
+             [target_mask, target_class_ids, mrcnn_mask])
 
             # Model
             inputs = [input_image, input_image_meta,
