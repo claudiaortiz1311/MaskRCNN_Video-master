@@ -2115,35 +2115,17 @@ class MaskRCNN():
         exclude: list of layer names to exclude
         """
     import h5py
-    from tensorflow.keras.saving import hdf5_format  # TensorFlow 2 import
-
+    
+    # Exclude layers if necessary
     if exclude:
         by_name = True
 
     if h5py is None:
         raise ImportError('`load_weights` requires h5py.')
-
-    f = h5py.File(filepath, mode='r')
-    if 'layer_names' not in f.attrs and 'model_weights' in f:
-        f = f['model_weights']
-
-    # In multi-GPU training, we wrap the model. Get layers
-    # of the inner model because they have the weights.
-    keras_model = self.keras_model
-    layers = keras_model.inner_model.layers if hasattr(keras_model, "inner_model") else keras_model.layers
-
-    # Exclude some layers
-    if exclude:
-        layers = [layer for layer in layers if layer.name not in exclude]
-
-    if by_name:
-        hdf5_format.load_weights_from_hdf5_group_by_name(f, layers)  # Adapted to TF2
-    else:
-        hdf5_format.load_weights_from_hdf5_group(f, layers)  # Adapted to TF2
-
-    if hasattr(f, 'close'):
-        f.close()
-
+    
+    # Use Keras' built-in load_weights function
+    self.keras_model.load_weights(filepath, by_name=by_name)
+    
     # Update the log directory
     self.set_log_dir(filepath)
 
