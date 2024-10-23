@@ -17,6 +17,7 @@ from collections import OrderedDict
 import multiprocessing
 import numpy as np
 import tensorflow as tf
+from tensorflow import keras
 import tensorflow.keras.backend as K
 import tensorflow.keras.layers as KL
 import tensorflow.keras.models as KM
@@ -2344,7 +2345,7 @@ class MaskRCNN():
             keras.callbacks.TensorBoard(log_dir=self.log_dir,
                                         histogram_freq=0, write_graph=True, write_images=False),
             keras.callbacks.ModelCheckpoint(self.checkpoint_path,
-                                            verbose=0, save_weights_only=True),
+                                        verbose=0, save_weights_only=True)
         ]
 
         # Add custom callbacks to the list
