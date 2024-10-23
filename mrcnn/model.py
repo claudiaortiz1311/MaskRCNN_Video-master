@@ -2157,10 +2157,7 @@ class MaskRCNN():
         # First, clear previously set losses to avoid duplication
         self.keras_model._losses = []
         self.keras_model._per_input_losses = {}
-        loss_names = [
-            "rpn_class_loss",  "rpn_bbox_loss",
-            "mrcnn_class_loss", "mrcnn_bbox_loss", "mrcnn_mask_loss"]
-        for name in loss_names:
+        for name in self.losses:
             layer = self.keras_model.get_layer(name)
             # print("AAAAAAAAA ", layer.output in self.keras_model.losses)
             # print("AAAAAAAAAA ", tf.constant(layer.output in self.keras_model.losses))
