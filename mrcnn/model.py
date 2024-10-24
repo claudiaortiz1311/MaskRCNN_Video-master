@@ -2151,7 +2151,7 @@ class MaskRCNN():
     def compile(self, learning_rate, momentum):
         """Prepara el modelo para el entrenamiento. Añade pérdidas, regularización y métricas. Luego llama a la función compile() de Keras."""
     
-        self.keras_model.metrics_tensors = []
+        #self.keras_model.metrics_tensors = []  # Elimina esta línea o ignórala
 
         # Optimizador
         optimizer = keras.optimizers.SGD(
@@ -2160,7 +2160,7 @@ class MaskRCNN():
     
         # Nombres de las pérdidas
         loss_names = ["rpn_class_loss", "rpn_bbox_loss", 
-                        "mrcnn_class_loss", "mrcnn_bbox_loss", "mrcnn_mask_loss"]
+                    "mrcnn_class_loss", "mrcnn_bbox_loss", "mrcnn_mask_loss"]
     
         # Salidas primarias del modelo (ajusta esto según sea necesario para tu modelo)
         primary_output = self.keras_model.outputs[0]
@@ -2176,20 +2176,13 @@ class MaskRCNN():
         # Definir el nuevo modelo con las salidas extendidas
         self.keras_model = keras.models.Model(self.keras_model.inputs, [primary_output] + loss_outputs)
     
-        # Compilar el modelo con las pérdidas asociadas
+        # Compilar el modelo con las pérdidas asociadas y métricas
         self.keras_model.compile(
             optimizer=optimizer,
             loss=[None] + ['mean_squared_error'] * len(loss_outputs),  # Ajusta el tipo de pérdida según sea necesario
-            loss_weights=[1.0] + [1.0] * len(loss_outputs)  # Ajusta los pesos según sea necesario
+            loss_weights=[1.0] + [1.0] * len(loss_outputs),  # Ajusta los pesos según sea necesario
+            metrics=['accuracy']  # Añadir métricas (ajusta según lo que necesites)
         )
-    
-        # Añadir métricas para las pérdidas
-        for name in loss_names:
-            if name in self.keras_model.metrics_names:
-                continue
-            layer = self.keras_model.get_layer(name)
-            loss = CustomLossLayer()(layer.output) * self.config.LOSS_WEIGHTS.get(name, 1.)
-            self.keras_model.metrics_tensors.append(loss)
 
     def set_trainable(self, layer_regex, keras_model=None, indent=0, verbose=1):
         """Sets model layers as trainable if their names match
