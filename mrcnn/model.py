@@ -1812,20 +1812,34 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
                         outputs.extend(
                             [batch_mrcnn_class_ids, batch_mrcnn_bbox, batch_mrcnn_mask])
 
-                yield inputs, outputs
+        # Yield data (this is where the change happens)
+    	yield [batch_images, batch_image_meta, batch_rpn_match, batch_rpn_bbox,
+           	batch_gt_class_ids, batch_gt_boxes, batch_gt_masks]
 
-                # start a new batch
-                b = 0
-        except (GeneratorExit, KeyboardInterrupt):
-            raise
-        except:
-            # Log it and skip the image
-            logging.exception("Error processing image {}".format(
-                dataset.image_info[image_id]))
-            error_count += 1
-            if error_count > 5:
-                raise
 
+
+	# Define output signature for the generator
+	output_signature = [
+    	tf.TensorSpec(shape=(config.BATCH_SIZE,) + config.IMAGE_SHAPE, dtype=tf.float32),  # batch_images
+    	tf.TensorSpec(shape=(config.BATCH_SIZE, modellib.IMAGE_META_SIZE), dtype=tf.float32),  # batch_image_meta
+    	tf.TensorSpec(shape=(config.BATCH_SIZE,) + modellib.compute_backbone_shapes(config, config.IMAGE_SHAPE)[0][:3] + (config.RPN_ANCHOR_STRIDE ** 2, 2), dtype=tf.int32),  # batch_rpn_match
+    	tf.TensorSpec(shape=(config.BATCH_SIZE,) + modellib.compute_backbone_shapes(config, config.IMAGE_SHAPE)[0][:3] + (config.RPN_ANCHOR_STRIDE ** 2, 4), dtype=tf.float32),  # batch_rpn_bbox
+    	tf.TensorSpec(shape=(config.BATCH_SIZE, config.MAX_GT_INSTANCES), dtype=tf.int32),  # batch_gt_class_ids
+    	tf.TensorSpec(shape=(config.BATCH_SIZE, config.MAX_GT_INSTANCES, 4), dtype=tf.float32),  # batch_gt_boxes
+    	tf.TensorSpec(shape=(config.BATCH_SIZE, config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.bool)  # batch_gt_masks
+	]
+
+
+	# Create TensorFlow Datasets
+	train_dataset_tf = tf.data.Dataset.from_generator(
+    	lambda: data_generator(dataset_train, config),
+    	output_signature=output_signature
+	).prefetch(tf.data.AUTO_DEFINE)  # Add prefetch for performance
+
+	val_dataset_tf = tf.data.Dataset.from_generator(
+    	lambda: data_generator(dataset_val, config, shuffle=False),
+    	output_signature=output_signature
+	).prefetch(tf.data.AUTO_DEFINE)  # Add prefetch for performance
 
 ############################################################
 #  MaskRCNN Class
