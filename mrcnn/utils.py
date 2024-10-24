@@ -22,6 +22,7 @@ import urllib.request
 import shutil
 import warnings
 from distutils.version import LooseVersion
+from skimage.transform import resize
 
 # URL from which to download the latest COCO trained weights
 COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5"
@@ -526,10 +527,15 @@ def minimize_mask(bbox, mask, mini_shape):
         m = mask[:, :, i].astype(bool)
         y1, x1, y2, x2 = bbox[i][:4]
         m = m[y1:y2, x1:x2]
+        
+        # Convert the boolean mask to a numerical type (e.g., float)
+        m = m.astype(np.float32) # Or np.uint8 if you prefer 
+        
         if m.size == 0:
             raise Exception("Invalid bounding box with area of zero")
-        # Resize with bilinear interpolation
-        m = resize(m, mini_shape)
+        # Resize with order=0 (nearest-neighbor) to avoid interpolation issues
+        m = resize(m, mini_shape, order=0, preserve_range=True) 
+        
         mini_mask[:, :, i] = np.around(m).astype(np.bool)
     return mini_mask
 
@@ -546,9 +552,14 @@ def expand_mask(bbox, mini_mask, image_shape):
         y1, x1, y2, x2 = bbox[i][:4]
         h = y2 - y1
         w = x2 - x1
-        # Resize with bilinear interpolation
-        m = resize(m, (h, w))
-        mask[y1:y2, x1:x2, i] = np.around(m).astype(np.bool)
+        
+        # Convert the boolean mini_mask to a numerical type (e.g., float)
+        m = m.astype(np.float32) # Or np.uint8 if you prefer
+        
+        # Resize with order=0 (nearest-neighbor) to avoid interpolation issues
+        m = resize(m, (h, w), order=0, preserve_range=True)
+        
+        mask[y1:y2, x1:x2, i] = np.around(m).astype(np.bool)  # Corrected: np.around(m)
     return mask
 
 
