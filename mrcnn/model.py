@@ -1812,20 +1812,51 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
                         outputs.extend(
                             [batch_mrcnn_class_ids, batch_mrcnn_bbox, batch_mrcnn_mask])
 
-                yield inputs, outputs
+            # Preparar los inputs como lo haces en tu código actual
+            inputs = [batch_images, batch_image_meta, batch_rpn_match, batch_rpn_bbox,
+                      batch_gt_class_ids, batch_gt_boxes, batch_gt_masks]
+            outputs = []
 
-                # start a new batch
-                b = 0
+            if random_rois:
+                inputs.extend([batch_rpn_rois])
+                if detection_targets:
+                    inputs.extend([batch_rois])
+                    # Keras requires that output and targets have the same number of dimensions
+                    batch_mrcnn_class_ids = np.expand_dims(batch_mrcnn_class_ids, -1)
+                    outputs.extend([batch_mrcnn_class_ids, batch_mrcnn_bbox, batch_mrcnn_mask])
+
+            # El yield original ahora estará dentro de la función del generador
+            yield inputs, outputs
+
         except (GeneratorExit, KeyboardInterrupt):
             raise
-        except:
-            # Log it and skip the image
-            logging.exception("Error processing image {}".format(
-                dataset.image_info[image_id]))
+        except Exception as e:
+            print(f"Error processing image {image_id}: {e}")
             error_count += 1
             if error_count > 5:
                 raise
 
+# Adaptación con output_signature para utilizar tf.data.Dataset
+def create_dataset(dataset, config, batch_size=1):
+    output_signature = (
+        (
+            tf.TensorSpec(shape=(batch_size, config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], 3), dtype=tf.float32),  # batch_images
+            tf.TensorSpec(shape=(batch_size, config.IMAGE_META_SIZE), dtype=tf.float32),  # batch_image_meta
+            tf.TensorSpec(shape=(batch_size, None, 1), dtype=tf.int32),  # batch_rpn_match
+            tf.TensorSpec(shape=(batch_size, None, 4), dtype=tf.float32),  # batch_rpn_bbox
+            tf.TensorSpec(shape=(batch_size, config.MAX_GT_INSTANCES), dtype=tf.int32),  # batch_gt_class_ids
+            tf.TensorSpec(shape=(batch_size, config.MAX_GT_INSTANCES, 4), dtype=tf.float32),  # batch_gt_boxes
+            tf.TensorSpec(shape=(batch_size, config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.bool),  # batch_gt_masks
+        ),
+        ()
+    )
+
+    dataset = tf.data.Dataset.from_generator(
+        lambda: data_generator(dataset, config, batch_size=batch_size),
+        output_signature=output_signature
+    )
+    
+    return dataset
 
 ############################################################
 #  MaskRCNN Class
