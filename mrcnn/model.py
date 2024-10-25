@@ -2252,8 +2252,8 @@ class MaskRCNN():
     	layers = layer_regex.get(layers, layers)
 
     	# Aquí creas el dataset `tf.data.Dataset` para usar en `fit`
-    	dataset_train_tf = create_tf_dataset(train_dataset, self.config, batch_size=self.config.BATCH_SIZE)
-    	dataset_val_tf = create_tf_dataset(val_dataset, self.config, batch_size=self.config.BATCH_SIZE)
+    	dataset_train_tf = create_dataset(train_dataset, self.config, batch_size=self.config.BATCH_SIZE)
+    	dataset_val_tf = create_dataset(val_dataset, self.config, batch_size=self.config.BATCH_SIZE)
 
     	# Callbacks y configuración de checkpoints
     	callbacks = [
