@@ -1805,15 +1805,7 @@ def create_tf_dataset(dataset, config, batch_size=1, shuffle_buffer_size=None):
 
     dataset_tf = tf.data.Dataset.from_generator(
         generator,
-        output_signature={
-            'image': tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], 3), dtype=tf.float32),
-            'image_meta': tf.TensorSpec(shape=(config.IMAGE_META_SIZE,), dtype=tf.float32),
-            'class_ids': tf.TensorSpec(shape=(config.MAX_GT_INSTANCES,), dtype=tf.int32),
-            'bbox': tf.TensorSpec(shape=(config.MAX_GT_INSTANCES, 4), dtype=tf.float32),
-            'mask': tf.TensorSpec(shape=(config.MINI_MASK_SHAPE[0], config.MINI_MASK_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.float32),
-            'image_id': tf.TensorSpec(shape=(), dtype=tf.int32)  # Add image_id to signature
-        }
-    )
+        output_signature=element_spec)
 
     if shuffle_buffer_size:
         dataset_tf = dataset_tf.shuffle(buffer_size=shuffle_buffer_size)
