@@ -1781,26 +1781,34 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
                 raise
 
 # Adaptación con output_signature para utilizar tf.data.Dataset
-def create_dataset(dataset, config, batch_size=1):
+# Create TensorFlow Datasets from your custom datasets
+def create_tf_dataset(dataset, config, batch_size=1):
+    """Creates a TensorFlow Dataset from a custom dataset."""
+
+    def generator():
+        for image_id in dataset.image_ids:
+            image, image_meta, gt_class_ids, gt_boxes, gt_masks = \
+                modellib.load_image_gt(dataset, config, image_id,
+                                       use_mini_mask=config.USE_MINI_MASK)
+            yield image, image_meta, gt_class_ids, gt_boxes, gt_masks
+
+    # Define the output signature for the dataset
     output_signature = (
-        (
-            tf.TensorSpec(shape=(batch_size, config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], 3), dtype=tf.float32),  # batch_images
-            tf.TensorSpec(shape=(batch_size, config.IMAGE_META_SIZE), dtype=tf.float32),  # batch_image_meta
-            tf.TensorSpec(shape=(batch_size, None, 1), dtype=tf.int32),  # batch_rpn_match
-            tf.TensorSpec(shape=(batch_size, None, 4), dtype=tf.float32),  # batch_rpn_bbox
-            tf.TensorSpec(shape=(batch_size, config.MAX_GT_INSTANCES), dtype=tf.int32),  # batch_gt_class_ids
-            tf.TensorSpec(shape=(batch_size, config.MAX_GT_INSTANCES, 4), dtype=tf.float32),  # batch_gt_boxes
-            tf.TensorSpec(shape=(batch_size, config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.bool),  # batch_gt_masks
-        ),
-        ()
+        tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], 3), dtype=tf.float32),  # image
+        tf.TensorSpec(shape=(11,), dtype=tf.int32),  # image_meta
+        tf.TensorSpec(shape=(config.MAX_GT_INSTANCES,), dtype=tf.int32),  # gt_class_ids
+        tf.TensorSpec(shape=(config.MAX_GT_INSTANCES, 4), dtype=tf.float32),  # gt_boxes
+        tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.uint8)  # gt_masks
     )
 
-    dataset = tf.data.Dataset.from_generator(
-        lambda: data_generator(dataset, config, batch_size=batch_size),
+    # Create the TensorFlow Dataset
+    dataset_tf = tf.data.Dataset.from_generator(
+        generator,
         output_signature=output_signature
     )
-    
-    return dataset
+    dataset_tf = dataset_tf.batch(batch_size)
+    return dataset_tf
+
 
 ############################################################
 #  MaskRCNN Class
