@@ -1797,22 +1797,22 @@ def create_tf_dataset(dataset, config, batch_size=1, shuffle_buffer_size=None):
             		modellib.load_image_gt(dataset_train, config,
                                    	image_id, use_mini_mask=False)
         
-        yield image, image_meta, gt_class_ids, gt_boxes, gt_masks
+        	yield image, image_meta, gt_class_ids, gt_boxes, gt_masks
 
 
 # Define the element_spec
-element_spec = (
-    tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], 3), dtype=tf.float32), # Image tensor spec
-    tf.TensorSpec(shape=(11,), dtype=tf.int32), # Image meta tensor spec
-    tf.TensorSpec(shape=(config.MAX_GT_INSTANCES,), dtype=tf.int32), # GT class IDs tensor spec
-    tf.TensorSpec(shape=(config.MAX_GT_INSTANCES, 4), dtype=tf.float32), # GT boxes tensor spec
-    tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.int32) # GT masks tensor spec
-)
+	element_spec = (
+    		tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], 3), dtype=tf.float32), # Image tensor spec
+    		tf.TensorSpec(shape=(11,), dtype=tf.int32), # Image meta tensor spec
+    		tf.TensorSpec(shape=(config.MAX_GT_INSTANCES,), dtype=tf.int32), # GT class IDs tensor spec
+    		tf.TensorSpec(shape=(config.MAX_GT_INSTANCES, 4), dtype=tf.float32), # GT boxes tensor spec
+    		tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.int32) # GT masks tensor spec
+		)
 
 
-dataset_tf = tf.data.Dataset.from_generator(
-    generator,
-    output_signature=element_spec)
+	dataset_tf = tf.data.Dataset.from_generator(
+    		generator,
+    		output_signature=element_spec)
 
     if shuffle_buffer_size:
         dataset_tf = dataset_tf.shuffle(buffer_size=shuffle_buffer_size)
