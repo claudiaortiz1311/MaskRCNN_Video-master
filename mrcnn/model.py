@@ -1789,19 +1789,24 @@ def create_tf_dataset(dataset, config, batch_size=1, shuffle_buffer_size=None):
     """
 
     def generator():
-        for image_id in dataset.image_ids:
-            image = dataset.load_image(image_id)
-            mask, class_ids = dataset.load_mask(image_id)
-            bbox = utils.extract_bboxes(mask)
+        for image_id in dataset_train.image_ids:
+        	image = dataset_train.load_image(image_id)
+        	mask, class_ids = dataset_train.load_mask(image_id)
+            # Mold inputs to format expected by the neural network
+        	image, image_meta, gt_class_ids, gt_boxes, gt_masks = \
+            		modellib.load_image_gt(dataset_train, config,
+                                   	image_id, use_mini_mask=False)
 
-            # Ensure data is in correct format
-            image, image_meta, class_ids, bbox, mask = \
-                modellib.load_image_gt(dataset, config, image_id, augment=False,
-                                       use_mini_mask=config.USE_MINI_MASK)
+            yield image, image_meta, gt_class_ids, gt_boxes, gt_masks
 
-            yield {'image': image, 'image_meta': image_meta,
-                   'class_ids': class_ids, 'bbox': bbox, 'mask': mask,
-                   'image_id': image_id}  # Include image_id here
+	# Define the element_spec
+element_spec = (
+    tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], 3), dtype=tf.float32), # Image tensor spec
+    tf.TensorSpec(shape=(11,), dtype=tf.int32), # Image meta tensor spec
+    tf.TensorSpec(shape=(config.MAX_GT_INSTANCES,), dtype=tf.int32), # GT class IDs tensor spec
+    tf.TensorSpec(shape=(config.MAX_GT_INSTANCES, 4), dtype=tf.float32), # GT boxes tensor spec
+    tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.int32) # GT masks tensor spec
+)
 
     dataset_tf = tf.data.Dataset.from_generator(
         generator,
