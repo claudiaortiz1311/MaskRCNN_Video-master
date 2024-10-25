@@ -1782,45 +1782,27 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
 
 # Adaptación con output_signature para utilizar tf.data.Dataset
 # Create TensorFlow Datasets from your custom datasets
-def create_tf_dataset(dataset, config, batch_size=1, shuffle_buffer_size=None):
-    """Creates a TensorFlow Dataset for Mask R-CNN training.
-
-    This modified version includes the image_ids in the dataset.
-    """
-
-    def generator():
-        for image_id in dataset.image_ids:
-            image = dataset.load_image(image_id)
-            mask, class_ids = dataset.load_mask(image_id)
-            bbox = utils.extract_bboxes(mask)
-
-            # Ensure data is in correct format
-            image, image_meta, class_ids, bbox, mask = \
-                modellib.load_image_gt(dataset, config, image_id, augment=False,
-                                       use_mini_mask=config.USE_MINI_MASK)
-
-            yield {'image': image, 'image_meta': image_meta,
-                   'class_ids': class_ids, 'bbox': bbox, 'mask': mask,
-                   'image_id': image_id}  # Include image_id here
-
-    dataset_tf = tf.data.Dataset.from_generator(
-        generator,
-        output_signature={
-            'image': tf.TensorSpec(shape=(config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], 3), dtype=tf.float32),
-            'image_meta': tf.TensorSpec(shape=(config.IMAGE_META_SIZE,), dtype=tf.float32),
-            'class_ids': tf.TensorSpec(shape=(config.MAX_GT_INSTANCES,), dtype=tf.int32),
-            'bbox': tf.TensorSpec(shape=(config.MAX_GT_INSTANCES, 4), dtype=tf.float32),
-            'mask': tf.TensorSpec(shape=(config.MINI_MASK_SHAPE[0], config.MINI_MASK_SHAPE[1], config.MAX_GT_INSTANCES), dtype=tf.float32),
-            'image_id': tf.TensorSpec(shape=(), dtype=tf.int32)  # Add image_id to signature
-        }
+def create_dataset(dataset, config, batch_size=1):
+    # Define las especificaciones exactas de los tensores en output_signature
+    output_signature = (
+        (
+            tf.TensorSpec(shape=(batch_size, None, None, config.IMAGE_SHAPE[2]), dtype=tf.float32),  # batch_images
+            tf.TensorSpec(shape=(batch_size, None), dtype=tf.float32),  # batch_image_meta
+            tf.TensorSpec(shape=(batch_size, config.RPN_ANCHOR_COUNT, 1), dtype=tf.float32),  # batch_rpn_match
+            tf.TensorSpec(shape=(batch_size, config.RPN_TRAIN_ANCHORS_PER_IMAGE, 4), dtype=tf.float32),  # batch_rpn_bbox
+            tf.TensorSpec(shape=(batch_size, config.MAX_GT_INSTANCES), dtype=tf.int32),  # batch_gt_class_ids
+            tf.TensorSpec(shape=(batch_size, config.MAX_GT_INSTANCES, 4), dtype=tf.int32),  # batch_gt_boxes
+            tf.TensorSpec(shape=(batch_size, None, None, config.MAX_GT_INSTANCES), dtype=tf.float32)  # batch_gt_masks
+        ),
+        # outputs si se aplican
     )
 
-    if shuffle_buffer_size:
-        dataset_tf = dataset_tf.shuffle(buffer_size=shuffle_buffer_size)
-
-    dataset_tf = dataset_tf.batch(batch_size)
-    dataset_tf = dataset_tf.prefetch(tf.data.AUTOTUNE)
+    dataset_tf = tf.data.Dataset.from_generator(
+        lambda: data_generator(dataset, config, batch_size=batch_size),
+        output_signature=output_signature
+    )
     return dataset_tf
+
 
 ############################################################
 #  MaskRCNN Class
