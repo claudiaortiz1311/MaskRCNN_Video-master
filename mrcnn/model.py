@@ -2268,8 +2268,6 @@ class MaskRCNN():
     	self.compile(learning_rate, self.config.LEARNING_MOMENTUM)
     	workers = 0 if os.name == 'nt' else multiprocessing.cpu_count()
 
-        steps_per_epoch = len(train_dataset) // config.BATCH_SIZE
-        validation_steps = len(val_dataset) // config.BATCH_SIZE
     	# Aquí usas dataset_train_tf y dataset_val_tf directamente en fit
     	self.keras_model.fit(
         	dataset_train_tf,
@@ -2277,8 +2275,8 @@ class MaskRCNN():
         	epochs=epochs,
         	callbacks=callbacks,
         	validation_data=dataset_val_tf,
-        	steps_per_epoch=steps_per_epoch,
-        	validation_steps=validation_steps,
+        	steps_per_epoch=self.config.STEPS_PER_EPOCH,
+        	validation_steps=self.config.VALIDATION_STEPS,
     	)
     	self.epoch = max(self.epoch, epochs)
 
