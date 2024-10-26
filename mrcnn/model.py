@@ -2286,8 +2286,8 @@ class MaskRCNN():
             epochs=epochs,
             callbacks=callbacks,
             validation_data=dataset_val_tf,
-            steps_per_epoch=steps_per_epoch,
-            validation_steps=validation_steps,
+            steps_per_epoch=train_size,
+            validation_steps=val_size,
         )
         self.epoch = max(self.epoch, epochs)
 
