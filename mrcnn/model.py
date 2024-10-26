@@ -2475,8 +2475,8 @@ class MaskRCNN():
         val_generator = DataGenerator(val_dataset, self.config, shuffle=True)
         
         # Aquí creas el dataset `tf.data.Dataset` para usar en `fit`
-        dataset_train_tf = create_dataset(train_dataset, batch_size=self.config.BATCH_SIZE)
-        dataset_val_tf = create_dataset(val_dataset, batch_size=self.config.BATCH_SIZE)
+        dataset_train_tf = create_dataset(train_generator, batch_size=self.config.BATCH_SIZE)
+        dataset_val_tf = create_dataset(val_generator, batch_size=self.config.BATCH_SIZE)
 
         # Create log_dir if it does not exist
         if not os.path.exists(self.log_dir):
