@@ -2482,8 +2482,7 @@ class MaskRCNN():
         callbacks = [
             keras.callbacks.TensorBoard(log_dir=self.log_dir,
                                         histogram_freq=0, write_graph=True, write_images=False),
-            keras.callbacks.ModelCheckpoint(self.checkpoint_path,
-                                            verbose=0, save_weights_only=True),
+            keras.callbacks.ModelCheckpoint(self.checkpoint_path.replace('.h5', '.weights.h5'), verbose=0, save_weights_only=True)
         ]
 
         # Add custom callbacks to the list
@@ -2512,9 +2511,6 @@ class MaskRCNN():
             callbacks=callbacks,
             validation_data=val_generator,
             validation_steps=self.config.VALIDATION_STEPS,
-            max_queue_size=100,
-            workers=workers,
-            use_multiprocessing=workers > 1,
         )
         self.epoch = max(self.epoch, epochs)
 
