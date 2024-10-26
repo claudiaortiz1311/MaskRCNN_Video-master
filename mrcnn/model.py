@@ -2239,6 +2239,7 @@ class MaskRCNN():
 
     def get_cardinality(dataset):
         return tf.data.experimental.cardinality(dataset)
+
     
     def train(self, train_dataset, val_dataset, learning_rate, epochs, layers,
           augmentation=None, custom_callbacks=None, no_augmentation_sources=None):
