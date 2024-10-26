@@ -2473,10 +2473,6 @@ class MaskRCNN():
         train_generator = DataGenerator(train_dataset, self.config, shuffle=True,
                                          augmentation=augmentation)
         val_generator = DataGenerator(val_dataset, self.config, shuffle=True)
-        
-        # Aquí creas el dataset `tf.data.Dataset` para usar en `fit`
-        dataset_train_tf = create_dataset(train_dataset, batch_size=self.config.BATCH_SIZE)
-        dataset_val_tf = create_dataset(val_dataset, batch_size=self.config.BATCH_SIZE)
 
         # Create log_dir if it does not exist
         if not os.path.exists(self.log_dir):
@@ -2508,12 +2504,12 @@ class MaskRCNN():
             workers = multiprocessing.cpu_count()
         workers=0
         self.keras_model.fit(
-            dataset_train_tf,
+            train_generator,
             initial_epoch=self.epoch,
             epochs=epochs,
             steps_per_epoch=self.config.STEPS_PER_EPOCH,
             callbacks=callbacks,
-            validation_data=dataset_val_tf,
+            validation_data=val_generator,
             validation_steps=self.config.VALIDATION_STEPS,
         )
         self.epoch = max(self.epoch, epochs)
