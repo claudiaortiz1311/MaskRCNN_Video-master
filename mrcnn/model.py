@@ -2237,6 +2237,9 @@ class MaskRCNN():
         self.checkpoint_path = self.checkpoint_path.replace(
             "*epoch*", "{epoch:04d}")
 
+    def get_cardinality(dataset):
+        return tf.data.experimental.cardinality(dataset)
+    
     def train(self, train_dataset, val_dataset, learning_rate, epochs, layers,
           augmentation=None, custom_callbacks=None, no_augmentation_sources=None):
     
@@ -2275,8 +2278,8 @@ class MaskRCNN():
         	epochs=epochs,
         	callbacks=callbacks,
         	validation_data=dataset_val_tf,
-        	steps_per_epoch=int(tf.data.experimental.cardinality(dataset_train_tf).numpy()) // self.config.BATCH_SIZE,
-        	validation_steps=int(tf.data.experimental.cardinality(dataset_val_tf).numpy()) // self.config.BATCH_SIZE,
+        	steps_per_epoch=int(get_cardinality(dataset_train_tf)) // self.config.BATCH_SIZE,
+        	validation_steps=int(get_cardinality(dataset_val_tf)) // self.config.BATCH_SIZE,
     	)
     	self.epoch = max(self.epoch, epochs)
 
