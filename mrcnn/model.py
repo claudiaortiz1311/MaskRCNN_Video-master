@@ -2270,10 +2270,19 @@ class MaskRCNN():
         self.set_trainable(layers)
         self.compile(learning_rate, self.config.LEARNING_MOMENTUM)
         workers = 0 if os.name == 'nt' else multiprocessing.cpu_count()
+        
+        # Calcular el tamaño del dataset usando un bucle for
+        train_size = 0
+        for _ in dataset_train_tf:
+            train_size += 1
+
+        val_size = 0
+        for _ in dataset_val_tf:
+            val_size += 1
 
         # Calcula la cardinalidad en modo ansioso
-        steps_per_epoch = tf.data.experimental.cardinality(dataset_train_tf).numpy() // self.config.BATCH_SIZE
-        validation_steps = tf.data.experimental.cardinality(dataset_val_tf).numpy() // self.config.BATCH_SIZE
+        steps_per_epoch = train_size // self.config.BATCH_SIZE
+        validation_steps = val_size // self.config.BATCH_SIZE
         
         # Aquí usas dataset_train_tf y dataset_val_tf directamente en fit
         self.keras_model.fit(
