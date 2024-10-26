@@ -2272,8 +2272,8 @@ class MaskRCNN():
         workers = 0 if os.name == 'nt' else multiprocessing.cpu_count()
         
         # Calcular el tamaño del dataset usando un bucle for
-        train_size = tf.data.experimental.cardinality(dataset_train_tf).numpy()
-        val_size = tf.data.experimental.cardinality(dataset_val_tf).numpy()
+        train_size = len(train_dataset)
+        val_size = len(val_dataset)
 
         # Calcula la cardinalidad en modo ansioso
         steps_per_epoch = train_size // self.config.BATCH_SIZE
