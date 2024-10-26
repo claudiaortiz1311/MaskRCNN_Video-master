@@ -2275,8 +2275,8 @@ class MaskRCNN():
         	epochs=epochs,
         	callbacks=callbacks,
         	validation_data=dataset_val_tf,
-        	steps_per_epoch=int(tf.data.experimental.cardinality(train_dataset_tf).numpy()) // self.config.BATCH_SIZE,
-        	validation_steps=int(tf.data.experimental.cardinality(val_dataset_tf).numpy()) // self.config.BATCH_SIZE,
+        	steps_per_epoch=int(tf.data.experimental.cardinality(dataset_train_tf).numpy()) // self.config.BATCH_SIZE,
+        	validation_steps=int(tf.data.experimental.cardinality(dataset_val_tf).numpy()) // self.config.BATCH_SIZE,
     	)
     	self.epoch = max(self.epoch, epochs)
 
