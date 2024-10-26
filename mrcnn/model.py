@@ -2243,48 +2243,49 @@ class MaskRCNN():
     def train(self, train_dataset, val_dataset, learning_rate, epochs, layers,
           augmentation=None, custom_callbacks=None, no_augmentation_sources=None):
     
-    # Mantén esta lógica de configuración
-    	assert self.mode == "training", "Create model in training mode."
-    	layer_regex = {
-        	"heads": r"(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-        	"3+": r"(res3.*)|(bn3.*)|(res4.*)|(bn4.*)|(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-        	"4+": r"(res4.*)|(bn4.*)|(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-        	"5+": r"(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-        	"all": ".*",
-    	}
-    	layers = layer_regex.get(layers, layers)
+        # Mantén esta lógica de configuración
+        assert self.mode == "training", "Create model in training mode."
+        layer_regex = {
+            "heads": r"(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
+            "3+": r"(res3.*)|(bn3.*)|(res4.*)|(bn4.*)|(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
+            "4+": r"(res4.*)|(bn4.*)|(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
+            "5+": r"(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
+            "all": ".*",
+        }
+        layers = layer_regex.get(layers, layers)
 
-    	# Aquí creas el dataset `tf.data.Dataset` para usar en `fit`
-    	dataset_train_tf = create_dataset(train_dataset, self.config, batch_size=self.config.BATCH_SIZE)
-    	dataset_val_tf = create_dataset(val_dataset, self.config, batch_size=self.config.BATCH_SIZE)
+        # Aquí creas el dataset `tf.data.Dataset` para usar en `fit`
+        dataset_train_tf = create_dataset(train_dataset, self.config, batch_size=self.config.BATCH_SIZE)
+        dataset_val_tf = create_dataset(val_dataset, self.config, batch_size=self.config.BATCH_SIZE)
 
-    	# Callbacks y configuración de checkpoints
-    	callbacks = [
-        	keras.callbacks.TensorBoard(log_dir=self.log_dir, histogram_freq=0, write_graph=True, write_images=False),
-        	keras.callbacks.ModelCheckpoint(self.checkpoint_path.replace('.h5', '.weights.h5'), verbose=0, save_weights_only=True)
-    	]
-    	if custom_callbacks:
-        	callbacks += custom_callbacks
+        # Callbacks y configuración de checkpoints
+        callbacks = [
+            keras.callbacks.TensorBoard(log_dir=self.log_dir, histogram_freq=0, write_graph=True, write_images=False),
+            keras.callbacks.ModelCheckpoint(self.checkpoint_path.replace('.h5', '.weights.h5'), verbose=0, save_weights_only=True)
+        ]
+        if custom_callbacks:
+            callbacks += custom_callbacks
 
-    	# Compilación y entrenamiento
-    	self.set_trainable(layers)
-    	self.compile(learning_rate, self.config.LEARNING_MOMENTUM)
-    	workers = 0 if os.name == 'nt' else multiprocessing.cpu_count()
+        # Compilación y entrenamiento
+        self.set_trainable(layers)
+        self.compile(learning_rate, self.config.LEARNING_MOMENTUM)
+        workers = 0 if os.name == 'nt' else multiprocessing.cpu_count()
 
         # Calcula la cardinalidad en modo ansioso
         steps_per_epoch = tf.data.experimental.cardinality(dataset_train_tf).numpy() // self.config.BATCH_SIZE
         validation_steps = tf.data.experimental.cardinality(dataset_val_tf).numpy() // self.config.BATCH_SIZE
-    	# Aquí usas dataset_train_tf y dataset_val_tf directamente en fit
-    	self.keras_model.fit(
-        	dataset_train_tf,
-        	initial_epoch=self.epoch,
-        	epochs=epochs,
-        	callbacks=callbacks,
-        	validation_data=dataset_val_tf,
-        	steps_per_epoch=steps_per_epoch,
-        	validation_steps=validation_steps,
-    	)
-    	self.epoch = max(self.epoch, epochs)
+        
+        # Aquí usas dataset_train_tf y dataset_val_tf directamente en fit
+        self.keras_model.fit(
+            dataset_train_tf,
+            initial_epoch=self.epoch,
+            epochs=epochs,
+            callbacks=callbacks,
+            validation_data=dataset_val_tf,
+            steps_per_epoch=steps_per_epoch,
+            validation_steps=validation_steps,
+        )
+        self.epoch = max(self.epoch, epochs)
 
     def mold_inputs(self, images):
         """Takes a list of images and modifies them to the format expected
