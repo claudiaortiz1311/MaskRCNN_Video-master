@@ -2272,8 +2272,8 @@ class MaskRCNN():
         workers = 0 if os.name == 'nt' else multiprocessing.cpu_count()
         
         # Calcular el tamaño del dataset usando un bucle for
-        train_size = len(list(dataset_train_tf))
-        val_size = len(list(dataset_val_tf))
+        train_size = len(train_dataset)
+        val_size = len(val_dataset)
 
         # Calcula la cardinalidad en modo ansioso
         steps_per_epoch = train_size // self.config.BATCH_SIZE
@@ -2286,8 +2286,8 @@ class MaskRCNN():
             epochs=epochs,
             callbacks=callbacks,
             validation_data=dataset_val_tf,
-            steps_per_epoch=steps_per_epoch,
-            validation_steps=validation_steps,
+            steps_per_epoch=train_size,
+            validation_steps=val_size,
         )
         self.epoch = max(self.epoch, epochs)
 
