@@ -1785,25 +1785,31 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
 
 # Adaptación con output_signature para utilizar tf.data.Dataset
 # Create TensorFlow Datasets from your custom datasets
-def create_dataset(dataset, config, batch_size=1):
-    # Define las especificaciones exactas de los tensores en output_signature
-    output_signature = (
-        (
-            tf.TensorSpec(shape=(batch_size, None, None, config.IMAGE_SHAPE[2]), dtype=tf.float32),  # batch_images
-            tf.TensorSpec(shape=(batch_size, None), dtype=tf.float32),  # batch_image_meta
-            tf.TensorSpec(shape=(batch_size, config.RPN_ANCHOR_COUNT, 1), dtype=tf.float32),  # batch_rpn_match
-            tf.TensorSpec(shape=(batch_size, config.RPN_TRAIN_ANCHORS_PER_IMAGE, 4), dtype=tf.float32),  # batch_rpn_bbox
-            tf.TensorSpec(shape=(batch_size, config.MAX_GT_INSTANCES), dtype=tf.int32),  # batch_gt_class_ids
-            tf.TensorSpec(shape=(batch_size, config.MAX_GT_INSTANCES, 4), dtype=tf.int32),  # batch_gt_boxes
-            tf.TensorSpec(shape=(batch_size, None, None, config.MAX_GT_INSTANCES), dtype=tf.float32)  # batch_gt_masks
-        ),
-        # outputs si se aplican
-    )
+def create_dataset(dataset, batch_size=1):
+    """Creates a TensorFlow Dataset from a custom dataset object.
+
+    Args:
+        dataset: The custom dataset object.
+
+    Returns:
+        A tf.data.Dataset object.
+    """
+
+    def generator():
+        for i in range(len(dataset)):
+            yield dataset.get_data(i)
 
     dataset_tf = tf.data.Dataset.from_generator(
-        lambda: data_generator(dataset, config, batch_size=batch_size),
-        output_signature=output_signature
-).prefetch(tf.data.AUTOTUNE)
+        generator,
+        output_signature=(
+            tf.TensorSpec(shape=(dataset.image_shape), dtype=tf.float32),  # Imagen
+            tf.TensorSpec(shape=(dataset.image_shape[:2] + (dataset.num_classes,)), dtype=tf.float32),  # Máscara
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),  # IDs de clases
+        )
+    )
+
+    # Cache, batching y prefetching
+    dataset_tf = dataset_tf.cache().batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
     return dataset_tf
 
