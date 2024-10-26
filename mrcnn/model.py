@@ -1803,7 +1803,8 @@ def create_dataset(dataset, config, batch_size=1):
     dataset_tf = tf.data.Dataset.from_generator(
         lambda: data_generator(dataset, config, batch_size=batch_size),
         output_signature=output_signature
-    )
+).prefetch(tf.data.AUTOTUNE)
+
     return dataset_tf
 
 
@@ -2286,8 +2287,8 @@ class MaskRCNN():
             epochs=epochs,
             callbacks=callbacks,
             validation_data=dataset_val_tf,
-            steps_per_epoch=train_size,
-            validation_steps=val_size,
+            steps_per_epoch=steps_per_epoch,
+            validation_steps=validation_steps,
         )
         self.epoch = max(self.epoch, epochs)
 
